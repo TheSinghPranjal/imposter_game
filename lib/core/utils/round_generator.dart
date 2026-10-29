@@ -123,7 +123,7 @@ class RoundGenerator {
     return Round(
       id: round.id,
       secretWord: secretWord,
-      difficulty: round.difficulty,
+      difficulty: secretWord.difficulty,
       players: round.players,
       assignments: Map.unmodifiable(assignments),
       imposterIds: round.imposterIds,

@@ -746,8 +746,18 @@ class _ConfigurationView extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Difficulty',
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'Difficulty',
+                      children: [
+                        TextSpan(
+                          text: '  pick one or more',
+                          style: AppTextStyles.label(
+                            ink.withValues(alpha: 0.7),
+                          ).copyWith(fontSize: 14),
+                        ),
+                      ],
+                    ),
                     style: AppTextStyles.title(ink).copyWith(
                       fontWeight: FontWeight.w900,
                       shadows: const [
@@ -764,8 +774,8 @@ class _ConfigurationView extends StatelessWidget {
                       Expanded(
                         child: _DifficultyTile(
                           difficulty: d,
-                          selected: settings.difficulty == d,
-                          onTap: () => ctrl.setDifficulty(d),
+                          selected: settings.difficulties.contains(d),
+                          onTap: () => ctrl.toggleDifficulty(d),
                         ),
                       ),
                     ],
@@ -858,7 +868,7 @@ class _DifficultyTile extends StatelessWidget {
 
     return Semantics(
       button: true,
-      selected: selected,
+      toggled: selected,
       label: '${difficulty.label} difficulty',
       child: GestureDetector(
         onTap: onTap,
@@ -1754,6 +1764,37 @@ class _SettingsView extends StatelessWidget {
                       onSelected: (_) => ctrl.setThemeMode(m),
                     );
                   }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'WORD DIFFICULTY',
+                style: AppTextStyles.label(on.withValues(alpha: 0.55)),
+              ),
+              const SizedBox(height: 8),
+              GlowCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      children: Difficulty.values.map((d) {
+                        return FilterChip(
+                          avatar: Text(d.emoji),
+                          label: Text(d.label),
+                          selected: s.difficulties.contains(d),
+                          showCheckmark: false,
+                          onSelected: (_) => ctrl.toggleDifficulty(d),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pick one, two or all three. Every new game and every '
+                      'shuffle takes a word from a random level you picked.',
+                      style: AppTextStyles.body(on.withValues(alpha: 0.7)),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

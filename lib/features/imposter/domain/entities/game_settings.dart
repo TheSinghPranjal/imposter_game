@@ -5,7 +5,7 @@ import '../enums/difficulty.dart';
 
 class GameSettings extends Equatable {
   const GameSettings({
-    this.difficulty = Difficulty.easy,
+    this.difficulties = const {Difficulty.easy},
     this.imposterCount = 1,
     this.showHint = false,
     this.themeMode = AppThemeMode.system,
@@ -16,7 +16,8 @@ class GameSettings extends Equatable {
     this.wordShuffleEnabled = true,
   });
 
-  final Difficulty difficulty;
+  /// Levels a new game draws its word from. Never empty.
+  final Set<Difficulty> difficulties;
   final int imposterCount;
   final bool showHint;
   final AppThemeMode themeMode;
@@ -32,7 +33,7 @@ class GameSettings extends Equatable {
   static const defaults = GameSettings();
 
   GameSettings copyWith({
-    Difficulty? difficulty,
+    Set<Difficulty>? difficulties,
     int? imposterCount,
     bool? showHint,
     AppThemeMode? themeMode,
@@ -43,7 +44,7 @@ class GameSettings extends Equatable {
     bool? wordShuffleEnabled,
   }) {
     return GameSettings(
-      difficulty: difficulty ?? this.difficulty,
+      difficulties: difficulties ?? this.difficulties,
       imposterCount: imposterCount ?? this.imposterCount,
       showHint: showHint ?? this.showHint,
       themeMode: themeMode ?? this.themeMode,
@@ -56,7 +57,10 @@ class GameSettings extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-    'difficulty': difficulty.name,
+    'difficulties': [
+      for (final d in Difficulty.values)
+        if (difficulties.contains(d)) d.name,
+    ],
     'imposterCount': imposterCount,
     'showHint': showHint,
     'themeMode': themeMode.name,
@@ -69,7 +73,7 @@ class GameSettings extends Equatable {
 
   factory GameSettings.fromJson(Map<String, dynamic> json) {
     return GameSettings(
-      difficulty: Difficulty.fromName(json['difficulty'] as String? ?? 'easy'),
+      difficulties: _difficultiesFromJson(json),
       imposterCount: json['imposterCount'] as int? ?? 1,
       showHint: json['showHint'] as bool? ?? false,
       themeMode: AppThemeMode.values.firstWhere(
@@ -86,7 +90,7 @@ class GameSettings extends Equatable {
 
   @override
   List<Object?> get props => [
-    difficulty,
+    difficulties,
     imposterCount,
     showHint,
     themeMode,
@@ -96,4 +100,15 @@ class GameSettings extends Equatable {
     allowDuplicateNames,
     wordShuffleEnabled,
   ];
+
+  /// Reads the saved levels, falling back to the single `difficulty` saved by
+  /// earlier versions, then to easy.
+  static Set<Difficulty> _difficultiesFromJson(Map<String, dynamic> json) {
+    final saved = json['difficulties'];
+    if (saved is List) {
+      final set = {for (final name in saved) Difficulty.fromName('$name')};
+      if (set.isNotEmpty) return set;
+    }
+    return {Difficulty.fromName(json['difficulty'] as String? ?? 'easy')};
+  }
 }

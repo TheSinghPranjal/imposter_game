@@ -176,8 +176,14 @@ class GameController extends StateNotifier<GameSession> {
     );
   }
 
-  Future<void> setDifficulty(Difficulty difficulty) async {
-    final settings = state.settings.copyWith(difficulty: difficulty);
+  /// Adds or removes a level. The last selected level cannot be removed.
+  Future<void> toggleDifficulty(Difficulty difficulty) async {
+    final current = state.settings.difficulties;
+    final next = current.contains(difficulty)
+        ? ({...current}..remove(difficulty))
+        : {...current, difficulty};
+    if (next.isEmpty) return;
+    final settings = state.settings.copyWith(difficulties: next);
     state = state.copyWith(settings: settings);
     await _persist(settings);
   }
@@ -246,12 +252,12 @@ class GameController extends StateNotifier<GameSession> {
       return;
     }
     try {
-      final word = _words.randomWordForRound(state.settings.difficulty);
+      final word = _words.randomWordForRound(state.settings.difficulties);
       final round = _generator.createRound(
         roundId: _uuid.v4(),
         players: state.players,
         secretWord: word,
-        difficulty: state.settings.difficulty,
+        difficulty: word.difficulty,
         imposterCount: state.settings.imposterCount,
         showHint: state.settings.showHint,
         protectFirstPlayer: state.settings.wordShuffleEnabled,
@@ -280,7 +286,7 @@ class GameController extends StateNotifier<GameSession> {
     final round = state.round;
     if (round == null || !state.canShuffleWord) return;
     try {
-      final word = _words.randomWordForRound(round.difficulty);
+      final word = _words.randomWordForRound(state.settings.difficulties);
       state = state.copyWith(
         round: _generator.replaceWord(
           round,

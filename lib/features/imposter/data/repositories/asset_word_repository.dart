@@ -81,8 +81,17 @@ class AssetWordRepository implements WordRepository {
   }
 
   @override
-  WordEntry randomWordForRound(Difficulty difficulty) {
+  WordEntry randomWordForRound(Set<Difficulty> difficulties) {
     _ensure();
+    final levels = [
+      for (final d in Difficulty.values)
+        if (difficulties.contains(d) && wordsByDifficulty(d).isNotEmpty) d,
+    ];
+    if (levels.isEmpty) throw StateError('No words for $difficulties');
+    return _randomWordForLevel(levels[_random.nextInt(levels.length)]);
+  }
+
+  WordEntry _randomWordForLevel(Difficulty difficulty) {
     var pool = wordsByDifficulty(
       difficulty,
     ).where((w) => !_recent.contains(w.id)).toList();

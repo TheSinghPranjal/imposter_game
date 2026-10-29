@@ -8,6 +8,9 @@ abstract class WordRepository {
   List<WordEntry> wordsByDifficulty(Difficulty difficulty);
   WordEntry randomWord(Difficulty difficulty);
   WordEntry randomWordExcluding(Difficulty difficulty, Set<String> excludeIds);
-  WordEntry randomWordForRound(Difficulty difficulty);
+
+  /// A word from one of [difficulties], each level equally likely, avoiding
+  /// recently used words.
+  WordEntry randomWordForRound(Set<Difficulty> difficulties);
   List<String> get recentWordIds;
 }
