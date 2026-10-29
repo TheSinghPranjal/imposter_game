@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'ad_ids.dart';
 
-/// Ad unit selection for Find the Imposter.
+/// Ad unit selection for Imposter Game.
 ///
 /// Production IDs live in `config/admob.json` (bundled as an asset) and can be
 /// overridden at compile time with `--dart-define` / `--dart-define-from-file`

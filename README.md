@@ -14,6 +14,7 @@ A playful pass-the-phone social deduction party game for Flutter.
 
 - Every new game reveals in the order players were added, rotated to start from a random player (never the same first player twice in a row)  
 - Word shuffle (on by default, toggle in Settings): the first player in the reveal order can shuffle the secret word for everyone before passing the phone, and is never the imposter. With shuffle off, anyone can be the imposter  
+- Word difficulty is multi-select (Easy by default, change it in Settings or on the round setup screen): each new game and each shuffle picks one of the selected levels at random, then a word from it  
 - Starting player is chosen independently of imposter selection  
 - Imposters never see the secret word  
 - Secrets hide when the app is backgrounded  

@@ -95,7 +95,8 @@ class _GameFlowScreenState extends ConsumerState<GameFlowScreen>
               session.phase == GamePhase.configuration ||
               session.phase.isRevealFlow ||
               session.phase == GamePhase.allRevealed ||
-              session.phase == GamePhase.roundReady
+              session.phase == GamePhase.roundReady ||
+              session.phase == GamePhase.settings
           ? _buildBody(session, ctrl)
           : PartyScaffold(child: _buildBody(session, ctrl)),
     );
@@ -1730,131 +1731,609 @@ class _SettingsView extends StatelessWidget {
   final GameSession session;
   final GameController ctrl;
 
+  static const _bear = 'assets/images/settings_bear.png';
+
   @override
   Widget build(BuildContext context) {
-    final on = Theme.of(context).colorScheme.onSurface;
     final s = session.settings;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: ctrl.goHome,
-              icon: const Icon(Icons.arrow_back_rounded),
-            ),
-            Text('Settings', style: AppTextStyles.title(on)),
-          ],
-        ),
-        Expanded(
-          child: ListView(
-            children: [
-              Text(
-                'APPEARANCE',
-                style: AppTextStyles.label(on.withValues(alpha: 0.55)),
-              ),
-              const SizedBox(height: 8),
-              GlowCard(
-                child: Wrap(
-                  spacing: 8,
-                  children: AppThemeMode.values.map((m) {
-                    return ChoiceChip(
-                      label: Text(m.label),
-                      selected: s.themeMode == m,
-                      onSelected: (_) => ctrl.setThemeMode(m),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'WORD DIFFICULTY',
-                style: AppTextStyles.label(on.withValues(alpha: 0.55)),
-              ),
-              const SizedBox(height: 8),
-              GlowCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      children: Difficulty.values.map((d) {
-                        return FilterChip(
-                          avatar: Text(d.emoji),
-                          label: Text(d.label),
-                          selected: s.difficulties.contains(d),
-                          showCheckmark: false,
-                          onSelected: (_) => ctrl.toggleDifficulty(d),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Pick one, two or all three. Every new game and every '
-                      'shuffle takes a word from a random level you picked.',
-                      style: AppTextStyles.body(on.withValues(alpha: 0.7)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'GAMEPLAY',
-                style: AppTextStyles.label(on.withValues(alpha: 0.55)),
-              ),
-              const SizedBox(height: 8),
-              GlowCard(
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Word shuffle'),
-                      subtitle: s.wordShuffleEnabled
-                          ? const Text(
-                              "Don't like the word? Shuffle it! The first "
-                              'player can change the word for everyone, and '
-                              'is never the imposter.',
-                            )
-                          : null,
-                      value: s.wordShuffleEnabled,
-                      onChanged: ctrl.setWordShuffleEnabled,
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Haptic feedback'),
-                      value: s.hapticEnabled,
-                      onChanged: ctrl.setHapticEnabled,
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Animations'),
-                      value: s.animationsEnabled,
-                      onChanged: ctrl.setAnimationsEnabled,
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Sound effects'),
-                      value: s.soundEnabled,
-                      onChanged: ctrl.setSoundEnabled,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const _AdPrivacySection(),
-              SecondaryButton(
-                label: 'RESET SETTINGS',
-                onPressed: ctrl.resetSettings,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                label: 'HOW TO PLAY',
-                onPressed: ctrl.openHowToPlay,
-              ),
+    final width = MediaQuery.of(context).size.width;
+    final bearWidth = math.min(140.0, width * 0.3);
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _SettingsPalette.skyTop,
+              _SettingsPalette.skyMid,
+              _SettingsPalette.skyBottom,
             ],
+            stops: [0, 0.5, 1],
           ),
         ),
-      ],
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _SettingsSparkles()),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Image.asset(_bear, width: bearWidth),
+              ),
+            ),
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      children: [
+                        _SettingsBackButton(onPressed: ctrl.goHome),
+                        const SizedBox(width: 16),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Settings',
+                              style: AppTextStyles.display(
+                                _SettingsPalette.ink,
+                              ).copyWith(fontSize: 38),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: bearWidth - 8),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      children: [
+                        const _SettingsSectionLabel('APPEARANCE'),
+                        _SettingsCard(
+                          child: Row(
+                            children: [
+                              for (final m in AppThemeMode.values) ...[
+                                if (m != AppThemeMode.values.first)
+                                  const SizedBox(width: 8),
+                                Expanded(
+                                  child: _SettingsChoiceTile(
+                                    leading: Icon(switch (m) {
+                                      AppThemeMode.system =>
+                                        Icons.desktop_windows_rounded,
+                                      AppThemeMode.light =>
+                                        Icons.light_mode_outlined,
+                                      AppThemeMode.dark =>
+                                        Icons.dark_mode_rounded,
+                                    }, size: 22),
+                                    label: m.label,
+                                    selected: s.themeMode == m,
+                                    filled: true,
+                                    onTap: () => ctrl.setThemeMode(m),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const _SettingsSectionLabel('WORD DIFFICULTY'),
+                        _SettingsCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  for (final d in Difficulty.values) ...[
+                                    if (d != Difficulty.values.first)
+                                      const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _SettingsChoiceTile(
+                                        leading: _GlossyDot(
+                                          color: switch (d) {
+                                            Difficulty.easy => const Color(
+                                              0xFF22C55E,
+                                            ),
+                                            Difficulty.medium => const Color(
+                                              0xFFFFC107,
+                                            ),
+                                            Difficulty.hard => const Color(
+                                              0xFFE53935,
+                                            ),
+                                          },
+                                        ),
+                                        label: d.label,
+                                        selected: s.difficulties.contains(d),
+                                        onTap: () => ctrl.toggleDifficulty(d),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  'Pick one, two or all three. Every new game '
+                                  'and every shuffle takes a word from a '
+                                  'random level you picked.',
+                                  style: AppTextStyles.body(
+                                    _SettingsPalette.muted,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const _SettingsSectionLabel('GAMEPLAY'),
+                        _SettingsCard(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          child: Column(
+                            children: [
+                              _SettingsSwitchRow(
+                                icon: Icons.shuffle_rounded,
+                                title: 'Word shuffle',
+                                subtitle: s.wordShuffleEnabled
+                                    ? "Don't like the word? Shuffle it! The "
+                                          'first player can change the word '
+                                          'for everyone, and is never the '
+                                          'imposter.'
+                                    : null,
+                                value: s.wordShuffleEnabled,
+                                onChanged: ctrl.setWordShuffleEnabled,
+                              ),
+                              const _SettingsDivider(),
+                              _SettingsSwitchRow(
+                                icon: Icons.vibration_rounded,
+                                title: 'Haptic feedback',
+                                value: s.hapticEnabled,
+                                onChanged: ctrl.setHapticEnabled,
+                              ),
+                              const _SettingsDivider(),
+                              _SettingsSwitchRow(
+                                icon: Icons.star_outline_rounded,
+                                title: 'Animations',
+                                value: s.animationsEnabled,
+                                onChanged: ctrl.setAnimationsEnabled,
+                              ),
+                              const _SettingsDivider(),
+                              _SettingsSwitchRow(
+                                icon: Icons.volume_up_rounded,
+                                title: 'Sound effects',
+                                value: s.soundEnabled,
+                                onChanged: ctrl.setSoundEnabled,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const _AdPrivacySection(),
+                        const SizedBox(height: 22),
+                        _SettingsPillButton(
+                          icon: Icons.refresh_rounded,
+                          label: 'RESET SETTINGS',
+                          onPressed: ctrl.resetSettings,
+                        ),
+                        const SizedBox(height: 12),
+                        _SettingsPillButton(
+                          icon: Icons.menu_book_rounded,
+                          label: 'HOW TO PLAY',
+                          onPressed: ctrl.openHowToPlay,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Colors for the pastel settings screen.
+class _SettingsPalette {
+  static const skyTop = Color(0xFFE6DCFD);
+  static const skyMid = Color(0xFFEAF0FD);
+  static const skyBottom = Color(0xFFDCD2FC);
+  static const ink = AppColors.deepPurple;
+  static const muted = Color(0xFF6E6585);
+  static const label = Color(0xFF6A6280);
+  static const violet = Color(0xFF7646F2);
+  static const violetLight = Color(0xFF9A6CFA);
+  static const tint = Color(0xFFF2EDFE);
+  static const border = Color(0xFFE5DFF2);
+  static const star = Color(0xFFFFD54F);
+}
+
+class _SettingsSectionLabel extends StatelessWidget {
+  const _SettingsSectionLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 18, 10, 10),
+      child: Text(
+        text,
+        style: AppTextStyles.label(_SettingsPalette.label).copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        boxShadow: [
+          BoxShadow(
+            color: _SettingsPalette.violet.withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+/// One option in a row of three. [filled] paints the selected tile solid
+/// violet (appearance); otherwise it gets a violet outline (difficulty).
+class _SettingsChoiceTile extends StatelessWidget {
+  const _SettingsChoiceTile({
+    required this.leading,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.filled = false,
+  });
+
+  final Widget leading;
+  final String label;
+  final bool selected;
+  final bool filled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final solid = selected && filled;
+    final fg = solid ? Colors.white : _SettingsPalette.ink;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          fit: StackFit.passthrough,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                gradient: solid
+                    ? const LinearGradient(
+                        colors: [
+                          _SettingsPalette.violetLight,
+                          _SettingsPalette.violet,
+                        ],
+                      )
+                    : null,
+                color: solid
+                    ? null
+                    : selected
+                    ? _SettingsPalette.tint
+                    : const Color(0xFFFBFAFE),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected
+                      ? (solid
+                            ? _SettingsPalette.violetLight
+                            : _SettingsPalette.violet)
+                      : _SettingsPalette.border,
+                  width: selected ? 2 : 1.5,
+                ),
+                boxShadow: solid
+                    ? [
+                        BoxShadow(
+                          color: _SettingsPalette.violet.withValues(
+                            alpha: 0.35,
+                          ),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconTheme(
+                      data: IconThemeData(color: fg),
+                      child: leading,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: AppTextStyles.title(
+                        fg,
+                      ).copyWith(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (selected)
+              Positioned(
+                top: -7,
+                right: -5,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _SettingsPalette.violet,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSwitchRow extends StatelessWidget {
+  const _SettingsSwitchRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            _SettingsIconBadge(icon),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.title(
+                      _SettingsPalette.ink,
+                    ).copyWith(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: AppTextStyles.body(
+                        _SettingsPalette.muted,
+                      ).copyWith(fontSize: 14, height: 1.3),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: _SettingsPalette.violet,
+              inactiveThumbColor: const Color(0xFF8E8AA3),
+              inactiveTrackColor: const Color(0xFFF0EEF5),
+              trackOutlineColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? Colors.transparent
+                    : const Color(0xFFB9B4C9),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsIconBadge extends StatelessWidget {
+  const _SettingsIconBadge(this.icon);
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: _SettingsPalette.tint,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, color: _SettingsPalette.violet, size: 26),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  const _SettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(height: 1, thickness: 1, color: Color(0xFFEFEBF6));
+  }
+}
+
+class _SettingsBackButton extends StatelessWidget {
+  const _SettingsBackButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Back',
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.9),
+        shape: const CircleBorder(),
+        elevation: 0,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: _SettingsPalette.violet.withValues(alpha: 0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              color: _SettingsPalette.violet,
+              size: 30,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsPillButton extends StatelessWidget {
+  const _SettingsPillButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 58,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 26),
+        label: Text(
+          label,
+          style: AppTextStyles.label(_SettingsPalette.violet).copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.6,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _SettingsPalette.violet,
+          backgroundColor: Colors.white.withValues(alpha: 0.55),
+          side: const BorderSide(color: _SettingsPalette.violet, width: 2),
+          shape: const StadiumBorder(),
+        ),
+      ),
+    );
+  }
+}
+
+/// A few soft stars and clouds behind the settings cards.
+class _SettingsSparkles extends StatelessWidget {
+  const _SettingsSparkles();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget star(double size, Color color) =>
+        Icon(Icons.star_rounded, size: size, color: color);
+    Widget cloud(double w, double opacity) => Container(
+      width: w,
+      height: w * 0.5,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: opacity),
+        borderRadius: BorderRadius.circular(w),
+      ),
+    );
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(top: 40, left: 150, child: cloud(70, 0.35)),
+          Positioned(top: 70, right: 150, child: star(30, Colors.white70)),
+          Positioned(
+            top: 40,
+            right: 120,
+            child: star(26, _SettingsPalette.star),
+          ),
+          Positioned(
+            bottom: 120,
+            right: 6,
+            child: star(26, _SettingsPalette.star),
+          ),
+          Positioned(
+            bottom: 40,
+            left: 4,
+            child: star(28, _SettingsPalette.star),
+          ),
+          Positioned(bottom: -30, left: -40, child: cloud(220, 0.45)),
+          Positioned(bottom: -40, right: -50, child: cloud(240, 0.4)),
+        ],
+      ),
     );
   }
 }
@@ -1878,7 +2357,6 @@ class _AdPrivacySectionState extends ConsumerState<_AdPrivacySection> {
 
   @override
   Widget build(BuildContext context) {
-    final on = Theme.of(context).colorScheme.onSurface;
     return FutureBuilder<bool>(
       future: _required,
       builder: (context, snapshot) {
@@ -1886,19 +2364,50 @@ class _AdPrivacySectionState extends ConsumerState<_AdPrivacySection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('ADS', style: AppTextStyles.label(on.withValues(alpha: 0.55))),
-            const SizedBox(height: 8),
-            GlowCard(
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Ad privacy choices'),
-                subtitle: const Text('Manage how ads are personalized'),
+            const _SettingsSectionLabel('ADS'),
+            _SettingsCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
                 onTap: () {
                   ref.read(adsServiceProvider).showPrivacyOptions();
                 },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      const _SettingsIconBadge(Icons.privacy_tip_outlined),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ad privacy choices',
+                              style: AppTextStyles.title(_SettingsPalette.ink)
+                                  .copyWith(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            Text(
+                              'Manage how ads are personalized',
+                              style: AppTextStyles.body(
+                                _SettingsPalette.muted,
+                              ).copyWith(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: _SettingsPalette.violet,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
           ],
         );
       },
