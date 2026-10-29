@@ -57,6 +57,7 @@ class GameController extends StateNotifier<GameSession> {
   final DateTime Function() _now;
   DateTime? _lastInterstitialAt;
   bool _startingNextRound = false;
+  String? _lastFirstPlayerId;
 
   Future<void> bootstrap() async {
     final saved = _settingsRepo?.load() ?? GameSettings.defaults;
@@ -214,6 +215,12 @@ class GameController extends StateNotifier<GameSession> {
     await _persist(settings);
   }
 
+  Future<void> setWordShuffleEnabled(bool value) async {
+    final settings = state.settings.copyWith(wordShuffleEnabled: value);
+    state = state.copyWith(settings: settings);
+    await _persist(settings);
+  }
+
   Future<void> setSoundEnabled(bool value) async {
     final settings = state.settings.copyWith(soundEnabled: value);
     state = state.copyWith(settings: settings);
@@ -247,7 +254,10 @@ class GameController extends StateNotifier<GameSession> {
         difficulty: state.settings.difficulty,
         imposterCount: state.settings.imposterCount,
         showHint: state.settings.showHint,
+        protectFirstPlayer: state.settings.wordShuffleEnabled,
+        previousFirstPlayerId: _lastFirstPlayerId,
       );
+      _lastFirstPlayerId = round.players.first.id;
       state = state.copyWith(
         phase: GamePhase.passPhone,
         round: round,
@@ -262,6 +272,24 @@ class GameController extends StateNotifier<GameSession> {
         phase: GamePhase.configuration,
         errorMessage: 'Could not start the round. Try again.',
       );
+    }
+  }
+
+  /// Deals a new secret word to everyone, keeping the same imposters.
+  void shuffleWord() {
+    final round = state.round;
+    if (round == null || !state.canShuffleWord) return;
+    try {
+      final word = _words.randomWordForRound(round.difficulty);
+      state = state.copyWith(
+        round: _generator.replaceWord(
+          round,
+          secretWord: word,
+          showHint: state.settings.showHint,
+        ),
+      );
+    } catch (_) {
+      // Keep the current word if a new one cannot be drawn.
     }
   }
 

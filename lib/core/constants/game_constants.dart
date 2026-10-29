@@ -1,3 +1,5 @@
+import '../../features/imposter/domain/enums/difficulty.dart';
+
 class GameConstants {
   static const int minPlayers = 3;
   static const int maxPlayers = 20;
@@ -7,10 +9,17 @@ class GameConstants {
   static const int recentWordLimit = 20;
   static const int holdToRevealMs = 800;
   static const int splashDurationMs = 1400;
-  static const int protectedPositions = 2;
+
+  /// Seats at the front of the reveal order that are never the imposter while
+  /// word shuffle is on: the first player sees the word and may shuffle it.
+  static const int protectedPositions = 1;
   static const String wordAssetPath = 'assets/data/imposter_words.json';
-  static const int expectedWordCount = 600;
-  static const int expectedPerDifficulty = 200;
+  static const int expectedWordCount = 900;
+  static const Map<Difficulty, int> expectedPerDifficulty = {
+    Difficulty.easy: 400,
+    Difficulty.medium: 300,
+    Difficulty.hard: 200,
+  };
 
   static int maxImpostersFor(int playerCount) {
     if (playerCount < minPlayers) return 0;

@@ -12,7 +12,8 @@ A playful pass-the-phone social deduction party game for Flutter.
 
 ## Product rules baked in
 
-- Imposters are never Player 1 or Player 2  
+- Every new game reveals in the order players were added, rotated to start from a random player (never the same first player twice in a row)  
+- Word shuffle (on by default, toggle in Settings): the first player in the reveal order can shuffle the secret word for everyone before passing the phone, and is never the imposter. With shuffle off, anyone can be the imposter  
 - Starting player is chosen independently of imposter selection  
 - Imposters never see the secret word  
 - Secrets hide when the app is backgrounded  
@@ -20,7 +21,7 @@ A playful pass-the-phone social deduction party game for Flutter.
 ## Stack
 
 - Flutter + Riverpod  
-- Offline 600-word pack (`assets/data/imposter_words.json`)  
+- Offline 900-word pack (`assets/data/imposter_words.json`)  
 - SharedPreferences for settings  
 
 ## Run

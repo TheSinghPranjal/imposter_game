@@ -21,10 +21,9 @@ class WordPackValidator {
     }
     for (final d in Difficulty.values) {
       final count = entries.where((e) => e.difficulty == d).length;
-      if (count != GameConstants.expectedPerDifficulty) {
-        errors.add(
-          'Expected ${GameConstants.expectedPerDifficulty} ${d.name}, got $count.',
-        );
+      final expected = GameConstants.expectedPerDifficulty[d];
+      if (count != expected) {
+        errors.add('Expected $expected ${d.name}, got $count.');
       }
     }
     final ids = <String>{};

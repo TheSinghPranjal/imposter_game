@@ -253,6 +253,11 @@ class _HowToPlayView extends StatelessWidget {
     const steps = [
       ('ADD PLAYERS', "Enter everyone's name."),
       ('REVEAL', 'Pass the phone and secretly reveal your card.'),
+      (
+        "DON'T LIKE THE WORD?",
+        'Shuffle it! The first player can change the word for everyone '
+            'before passing the phone. Turn this off in Settings.',
+      ),
       ('GIVE CLUES', 'Everyone describes the secret word.'),
       ('FIND THE IMPOSTER', 'Discuss and figure out who is bluffing.'),
       ('NEW ROUND', 'Start another round with one tap.'),
@@ -1142,6 +1147,7 @@ class _RevealView extends StatelessWidget {
     final assignment = session.currentAssignment;
     if (assignment == null) return const SizedBox.shrink();
     final revealed = session.isCardRevealed;
+    final canShuffle = session.canShuffleWord;
 
     return _SignboardScaffold(
       image: 'assets/images/your_turn_background.webp',
@@ -1160,7 +1166,11 @@ class _RevealView extends StatelessWidget {
               child: _Pill(
                 color: const Color(0xFFD9F1FF).withValues(alpha: 0.95),
                 child: Text(
-                  revealed ? 'Keep this secret 🤫' : 'Hold to reveal',
+                  canShuffle
+                      ? "Don't like the word? Shuffle it!"
+                      : revealed
+                      ? 'Keep this secret 🤫'
+                      : 'Hold to reveal',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.title(
                     const Color(0xFF1F4E9C),
@@ -1199,6 +1209,21 @@ class _RevealView extends StatelessWidget {
             },
           ),
         ),
+        if (canShuffle) ...[
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: CandyButton(
+              label: 'SHUFFLE WORD',
+              icon: Icons.shuffle_rounded,
+              style: CandyButtonStyle.cream,
+              onPressed: () {
+                haptics.selection();
+                ctrl.shuffleWord();
+              },
+            ),
+          ),
+        ],
         if (revealed) ...[
           const SizedBox(height: 12),
           Padding(
@@ -1740,6 +1765,19 @@ class _SettingsView extends StatelessWidget {
               GlowCard(
                 child: Column(
                   children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Word shuffle'),
+                      subtitle: s.wordShuffleEnabled
+                          ? const Text(
+                              "Don't like the word? Shuffle it! The first "
+                              'player can change the word for everyone, and '
+                              'is never the imposter.',
+                            )
+                          : null,
+                      value: s.wordShuffleEnabled,
+                      onChanged: ctrl.setWordShuffleEnabled,
+                    ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Haptic feedback'),

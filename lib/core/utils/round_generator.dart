@@ -12,30 +12,38 @@ class RoundGenerator {
   RoundGenerator({Random? random}) : _random = random ?? Random();
   final Random _random;
 
-  List<int> eligibleImposterPositions(int playerCount) {
-    if (playerCount < GameConstants.minPlayers) return const [];
-    return [
-      for (var i = GameConstants.protectedPositions + 1; i <= playerCount; i++)
-        i,
-    ];
-  }
-
   int clampImposterCount(int requested, int playerCount) {
     final max = GameConstants.maxImpostersFor(playerCount);
     if (max <= 0) return 0;
     return requested.clamp(1, max);
   }
 
-  List<String> selectImposterIds({
-    required List<Player> players,
-    required int imposterCount,
-  }) {
+  /// The players in the order they were added, rotated to start from a random
+  /// player. The rotation never starts from [previousFirstId] again, so every
+  /// new game begins with someone different.
+  List<Player> revealOrder(List<Player> players, {String? previousFirstId}) {
     final sorted = [...players]
       ..sort((a, b) => a.position.compareTo(b.position));
-    final eligible = sorted
-        .where((p) => p.position > GameConstants.protectedPositions)
-        .toList();
-    final count = clampImposterCount(imposterCount, players.length);
+    if (sorted.length < 2) return sorted;
+    final starts = [
+      for (var i = 0; i < sorted.length; i++)
+        if (sorted[i].id != previousFirstId) i,
+    ];
+    final start = starts[_random.nextInt(starts.length)];
+    return [...sorted.skip(start), ...sorted.take(start)];
+  }
+
+  /// Picks imposters from [order]. When [protectFirst] is set, the first
+  /// player in the reveal order is never chosen.
+  List<String> selectImposterIds({
+    required List<Player> order,
+    required int imposterCount,
+    required bool protectFirst,
+  }) {
+    final eligible = protectFirst
+        ? order.skip(GameConstants.protectedPositions).toList()
+        : [...order];
+    final count = clampImposterCount(imposterCount, order.length);
     if (count > eligible.length) {
       throw StateError('Not enough eligible imposter positions.');
     }
@@ -73,13 +81,17 @@ class RoundGenerator {
     required Difficulty difficulty,
     required int imposterCount,
     required bool showHint,
+    bool protectFirstPlayer = true,
+    String? previousFirstPlayerId,
   }) {
+    final order = revealOrder(players, previousFirstId: previousFirstPlayerId);
     final imposters = selectImposterIds(
-      players: players,
+      order: order,
       imposterCount: imposterCount,
+      protectFirst: protectFirstPlayer,
     );
     final assignments = buildAssignments(
-      players: players,
+      players: order,
       imposterIds: imposters,
       secretWord: secretWord,
       showHint: showHint,
@@ -88,11 +100,35 @@ class RoundGenerator {
       id: roundId,
       secretWord: secretWord,
       difficulty: difficulty,
-      players: List.unmodifiable(players),
+      players: List.unmodifiable(order),
       assignments: Map.unmodifiable(assignments),
       imposterIds: List.unmodifiable(imposters),
-      startingPlayerId: selectStartingPlayerId(players),
+      startingPlayerId: selectStartingPlayerId(order),
       createdAt: DateTime.now(),
+    );
+  }
+
+  /// Same round, same imposters, new secret word for everyone.
+  Round replaceWord(
+    Round round, {
+    required WordEntry secretWord,
+    required bool showHint,
+  }) {
+    final assignments = buildAssignments(
+      players: round.players,
+      imposterIds: round.imposterIds,
+      secretWord: secretWord,
+      showHint: showHint,
+    );
+    return Round(
+      id: round.id,
+      secretWord: secretWord,
+      difficulty: round.difficulty,
+      players: round.players,
+      assignments: Map.unmodifiable(assignments),
+      imposterIds: round.imposterIds,
+      startingPlayerId: round.startingPlayerId,
+      createdAt: round.createdAt,
     );
   }
 }

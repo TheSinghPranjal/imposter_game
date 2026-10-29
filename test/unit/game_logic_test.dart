@@ -11,18 +11,18 @@ import 'package:imposter_game/features/imposter/domain/enums/difficulty.dart';
 import 'package:imposter_game/features/imposter/domain/enums/role.dart';
 
 List<Player> makePlayers(int count) => [
-      for (var i = 0; i < count; i++)
-        Player(id: 'p$i', name: 'Player ${i + 1}', position: i + 1),
-    ];
+  for (var i = 0; i < count; i++)
+    Player(id: 'p$i', name: 'Player ${i + 1}', position: i + 1),
+];
 
 WordEntry sampleWord() => const WordEntry(
-      id: 'easy_001',
-      difficulty: Difficulty.easy,
-      category: 'nature',
-      word: 'Water',
-      hint: 'Liquid',
-      tags: ['nature'],
-    );
+  id: 'easy_001',
+  difficulty: Difficulty.easy,
+  category: 'nature',
+  word: 'Water',
+  hint: 'Liquid',
+  tags: ['nature'],
+);
 
 void main() {
   group('GameConstants.maxImpostersFor', () {
@@ -55,8 +55,9 @@ void main() {
   });
 
   group('RoundGenerator', () {
-    test('never selects position 1 or 2 as imposter', () {
+    test('first player in the reveal order is never the imposter', () {
       final generator = RoundGenerator(random: Random(42));
+      String? previous;
       for (var i = 0; i < 200; i++) {
         final round = generator.createRound(
           roundId: 'r$i',
@@ -65,10 +66,80 @@ void main() {
           difficulty: Difficulty.easy,
           imposterCount: 2,
           showHint: false,
+          previousFirstPlayerId: previous,
         );
-        for (final id in round.imposterIds) {
-          final p = round.players.firstWhere((e) => e.id == id);
-          expect(p.position, greaterThan(2));
+        expect(round.imposterIds, isNot(contains(round.players.first.id)));
+        previous = round.players.first.id;
+      }
+    });
+
+    test('without shuffle protection the first player can be imposter', () {
+      final generator = RoundGenerator(random: Random(3));
+      var firstWasImposter = false;
+      for (var i = 0; i < 200; i++) {
+        final round = generator.createRound(
+          roundId: 'r$i',
+          players: makePlayers(3),
+          secretWord: sampleWord(),
+          difficulty: Difficulty.easy,
+          imposterCount: 1,
+          showHint: false,
+          protectFirstPlayer: false,
+        );
+        if (round.imposterIds.contains(round.players.first.id)) {
+          firstWasImposter = true;
+        }
+      }
+      expect(firstWasImposter, isTrue);
+    });
+
+    test('reveal order rotates setup order from a new player each game', () {
+      final generator = RoundGenerator(random: Random(9));
+      final players = makePlayers(9);
+      final firsts = <String>{};
+      String? previous;
+      for (var i = 0; i < 200; i++) {
+        final order = generator.revealOrder(players, previousFirstId: previous);
+        final start = order.first.position - 1;
+        expect(order, [...players.skip(start), ...players.take(start)]);
+        expect(order.first.id, isNot(previous));
+        firsts.add(order.first.id);
+        previous = order.first.id;
+      }
+      expect(firsts.length, 9);
+    });
+
+    test('replacing the word keeps imposters and updates everyone', () {
+      final generator = RoundGenerator(random: Random(5));
+      final round = generator.createRound(
+        roundId: 'r1',
+        players: makePlayers(6),
+        secretWord: sampleWord(),
+        difficulty: Difficulty.easy,
+        imposterCount: 2,
+        showHint: true,
+      );
+      const next = WordEntry(
+        id: 'easy_002',
+        difficulty: Difficulty.easy,
+        category: 'food',
+        word: 'Apple',
+        hint: 'Orchard',
+      );
+      final shuffled = generator.replaceWord(
+        round,
+        secretWord: next,
+        showHint: true,
+      );
+      expect(shuffled.imposterIds, round.imposterIds);
+      expect(shuffled.players, round.players);
+      for (final p in shuffled.players) {
+        final a = shuffled.assignmentFor(p.id)!;
+        if (a.isImposter) {
+          expect(a.word, isNull);
+          expect(a.hint, 'Orchard');
+        } else {
+          expect(a.word, 'Apple');
         }
       }
     });
@@ -119,7 +190,7 @@ void main() {
   group('WordPackValidator', () {
     test('rejects hint equal to word', () {
       final entries = [
-        for (var i = 0; i < 600; i++)
+        for (var i = 0; i < 900; i++)
           WordEntry(
             id: 'w$i',
             difficulty: Difficulty.values[i % 3],
@@ -129,8 +200,7 @@ void main() {
           ),
       ];
       expect(
-        () => const WordPackValidator()
-            .validate(entries, throwOnError: true),
+        () => const WordPackValidator().validate(entries, throwOnError: true),
         throwsA(isA<WordValidationException>()),
       );
     });

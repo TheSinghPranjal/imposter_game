@@ -5,6 +5,7 @@ import '../../domain/entities/player.dart';
 import '../../domain/entities/player_assignment.dart';
 import '../../domain/entities/round.dart';
 import '../../domain/enums/game_phase.dart';
+import '../../domain/enums/role.dart';
 
 class GameSession extends Equatable {
   const GameSession({
@@ -35,12 +36,16 @@ class GameSession extends Equatable {
   /// Rounds that reached the between-rounds screen in this session.
   final int roundsCompleted;
 
+  /// Players in this round's reveal order, or in setup order between rounds.
+  List<Player> get turnOrder => round?.players ?? players;
+
   Player? get currentPlayer {
-    if (players.isEmpty) return null;
-    if (currentPlayerIndex < 0 || currentPlayerIndex >= players.length) {
+    final order = turnOrder;
+    if (order.isEmpty) return null;
+    if (currentPlayerIndex < 0 || currentPlayerIndex >= order.length) {
       return null;
     }
-    return players[currentPlayerIndex];
+    return order[currentPlayerIndex];
   }
 
   PlayerAssignment? get currentAssignment {
@@ -51,7 +56,18 @@ class GameSession extends Equatable {
   }
 
   bool get isLastPlayer =>
-      players.isNotEmpty && currentPlayerIndex >= players.length - 1;
+      turnOrder.isNotEmpty && currentPlayerIndex >= turnOrder.length - 1;
+
+  /// Only the first player, with their card face up and before the phone is
+  /// passed on, may shuffle the word for everyone.
+  bool get canShuffleWord =>
+      settings.wordShuffleEnabled &&
+      round != null &&
+      currentPlayerIndex == 0 &&
+      phase == GamePhase.revealed &&
+      isCardRevealed &&
+      !privacyLocked &&
+      currentAssignment?.role == Role.civilian;
 
   Player? get startingPlayer => round?.startingPlayer;
 
@@ -91,6 +107,7 @@ class GameSession extends Equatable {
     players,
     settings,
     round?.id,
+    round?.secretWord.id,
     currentPlayerIndex,
     isCardRevealed,
     isHolding,

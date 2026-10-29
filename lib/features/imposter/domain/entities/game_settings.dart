@@ -13,6 +13,7 @@ class GameSettings extends Equatable {
     this.hapticEnabled = true,
     this.animationsEnabled = true,
     this.allowDuplicateNames = false,
+    this.wordShuffleEnabled = true,
   });
 
   final Difficulty difficulty;
@@ -23,6 +24,10 @@ class GameSettings extends Equatable {
   final bool hapticEnabled;
   final bool animationsEnabled;
   final bool allowDuplicateNames;
+
+  /// The first player in the reveal order may shuffle the secret word for
+  /// everyone, and is never the imposter while this is on.
+  final bool wordShuffleEnabled;
 
   static const defaults = GameSettings();
 
@@ -35,6 +40,7 @@ class GameSettings extends Equatable {
     bool? hapticEnabled,
     bool? animationsEnabled,
     bool? allowDuplicateNames,
+    bool? wordShuffleEnabled,
   }) {
     return GameSettings(
       difficulty: difficulty ?? this.difficulty,
@@ -45,6 +51,7 @@ class GameSettings extends Equatable {
       hapticEnabled: hapticEnabled ?? this.hapticEnabled,
       animationsEnabled: animationsEnabled ?? this.animationsEnabled,
       allowDuplicateNames: allowDuplicateNames ?? this.allowDuplicateNames,
+      wordShuffleEnabled: wordShuffleEnabled ?? this.wordShuffleEnabled,
     );
   }
 
@@ -57,6 +64,7 @@ class GameSettings extends Equatable {
     'hapticEnabled': hapticEnabled,
     'animationsEnabled': animationsEnabled,
     'allowDuplicateNames': allowDuplicateNames,
+    'wordShuffleEnabled': wordShuffleEnabled,
   };
 
   factory GameSettings.fromJson(Map<String, dynamic> json) {
@@ -72,6 +80,7 @@ class GameSettings extends Equatable {
       hapticEnabled: json['hapticEnabled'] as bool? ?? true,
       animationsEnabled: json['animationsEnabled'] as bool? ?? true,
       allowDuplicateNames: json['allowDuplicateNames'] as bool? ?? false,
+      wordShuffleEnabled: json['wordShuffleEnabled'] as bool? ?? true,
     );
   }
 
@@ -85,5 +94,6 @@ class GameSettings extends Equatable {
     hapticEnabled,
     animationsEnabled,
     allowDuplicateNames,
+    wordShuffleEnabled,
   ];
 }
