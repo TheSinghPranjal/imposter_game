@@ -1,0 +1,3 @@
+// Generated from config/admob.json by tool/sync_admob.dart.
+// Do not edit by hand. Re-run the tool after changing AdMob IDs.
+GAD_APPLICATION_IDENTIFIER=TODO_ADMOB_IOS_APP_ID
