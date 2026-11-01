@@ -141,6 +141,9 @@ jobs:
           print(f"Bumped pubspec version to {bumped}")
           PY
 
+      # flutter pub get on stable can rewrite the tracked pubspec.lock.
+      # Commit only pubspec.yaml. A dirty lock is expected; any other
+      # leftover path fails the job.
       - name: Commit and push version bump
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -149,12 +152,29 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- pubspec.yaml
-          if git diff --cached --quiet -- pubspec.yaml; then
-            echo "::error::version bump did not stage a pubspec.yaml change."
+          staged="$(git diff --cached --name-only)"
+          if [[ "${staged}" != "pubspec.yaml" ]]; then
+            echo "::error::version bump must stage only pubspec.yaml."
+            printf '%s\n' "${staged}"
             exit 1
           fi
           git commit -m "chore: bump version to ${VERSION}"
           git push origin HEAD:main
+          unexpected="$(
+            git status --porcelain --untracked-files=all | while IFS= read -r line; do
+              [[ -z "${line}" ]] && continue
+              path="${line:3}"
+              if [[ "${path}" == "pubspec.lock" ]]; then
+                continue
+              fi
+              printf '%s\n' "${line}"
+            done
+          )"
+          if [[ -n "${unexpected}" ]]; then
+            echo "::error::version bump left unexpected working tree changes"
+            printf '%s\n' "${unexpected}"
+            exit 1
+          fi
 
       - name: Restore upload keystore
         env:
