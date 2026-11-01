@@ -33,11 +33,29 @@ flutter run
 flutter test
 ```
 
+## Production deploy
+
+Ship Android to the Play **production** track with the **Production Deploy** workflow (`.github/workflows/deploy.yml`). Open **Actions → Production Deploy → Run workflow**. The workflow checks out `main`, builds a signed app bundle, and uploads it with status **completed**. A second run waits until the one already going has finished.
+
+Add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+| --- | --- |
+| `KEYSTORE_BASE64` | Base64 of the upload keystore. The workflow decodes it to `android/app/keystore/upload-keystore.jks`. |
+| `KEYSTORE_PASSWORD` | Keystore store password. |
+| `KEY_ALIAS` | Upload key alias. |
+| `KEY_PASSWORD` | Upload key password. |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT` | The Play service-account JSON text. |
+
+Each run adds 1 to the `+build` number in `pubspec.yaml`, commits `chore: bump version to <version>` as `github-actions[bot]`, and pushes that commit to `main` before the upload. `pubspec.yaml` is `1.0.0+1` today, so the first run ships `1.0.0+2`. If Play already has that version code, or any higher one, raise the `+build` number on `main` above the code Play already has, then run the workflow. If Play rejects a duplicate version code, run the workflow again.
+
+The workflow can push to `main`, so Actions needs permission to push there. Release packaging also runs `tool/validate_admob.dart --android`, so the Android IDs in `config/admob.json` have to be real production IDs.
+
 ## Configuring AdMob for release
 
 Debug and profile builds always request Google's sample ad units, so they show **Test Ad**. Release builds (`flutter build appbundle`, `flutter build ipa`, `flutter run --release`) request the production IDs in [`config/admob.json`](config/admob.json). That file is the only place to paste them. The publisher account is `pub-8661918790125012`.
 
-This app does not have AdMob app or unit IDs yet. Every value in `config/admob.json` is a `TODO_…` placeholder, so a release build fails until they are replaced. There is no rewarded ad: nothing in the game trades a view for a reward.
+The Android IDs in `config/admob.json` are filled in. The iOS values are still `TODO_…` placeholders. An Android release build checks only the Android keys, so it can ship before the iOS IDs exist. There is no rewarded ad: nothing in the game trades a view for a reward.
 
 Create the apps and ad units in AdMob, then replace each `TODO_…` value:
 
