@@ -10,6 +10,7 @@ import 'features/imposter/data/repositories/settings_repository.dart';
 import 'features/imposter/presentation/providers/game_controller.dart';
 import 'services/ads/ads_service.dart';
 
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Nunito is bundled under the SIL Open Font License, which must ship with it.
