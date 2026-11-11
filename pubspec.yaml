@@ -29,6 +29,7 @@ flutter:
   assets:
     - assets/data/imposter_words.json
     - assets/images/
+    - assets/branding/lazy_bear_club.png
     - assets/fonts/OFL.txt
     - config/admob.json
   fonts:

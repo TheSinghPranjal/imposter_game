@@ -8,7 +8,7 @@ class GameConstants {
   static const int maxNameLength = 20;
   static const int recentWordLimit = 20;
   static const int holdToRevealMs = 800;
-  static const int splashDurationMs = 1400;
+  static const int splashDurationMs = 2000;
 
   /// Seats at the front of the reveal order that are never the imposter while
   /// word shuffle is on: the first player sees the word and may shuffle it.
