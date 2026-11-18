@@ -9,7 +9,7 @@ import 'core/constants/ad_config.dart';
 import 'features/imposter/data/repositories/settings_repository.dart';
 import 'features/imposter/presentation/providers/game_controller.dart';
 import 'services/ads/ads_service.dart';
-
+import 'services/review/in_app_review_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,11 +29,13 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final settingsRepo = SettingsRepository(prefs);
+  final inAppReview = StoreInAppReviewService(prefs: prefs);
 
   final container = ProviderContainer(
     overrides: [
       settingsRepositoryProvider.overrideWithValue(settingsRepo),
       adsServiceProvider.overrideWithValue(ads),
+      inAppReviewServiceProvider.overrideWithValue(inAppReview),
     ],
   );
 

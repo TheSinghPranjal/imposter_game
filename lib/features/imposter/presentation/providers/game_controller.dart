@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -5,6 +7,7 @@ import '../../../../core/constants/game_constants.dart';
 import '../../../../core/utils/player_validation.dart';
 import '../../../../core/utils/round_generator.dart';
 import '../../../../services/ads/ads_service.dart';
+import '../../../../services/review/in_app_review_service.dart';
 import '../../ads/interstitial_policy.dart';
 import '../../data/repositories/asset_word_repository.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -30,6 +33,7 @@ final gameControllerProvider =
         wordRepository: ref.watch(wordRepositoryProvider),
         settingsRepository: ref.watch(settingsRepositoryProvider),
         adsService: ref.watch(adsServiceProvider),
+        inAppReview: ref.watch(inAppReviewServiceProvider),
       );
     });
 
@@ -40,12 +44,14 @@ class GameController extends StateNotifier<GameSession> {
     RoundGenerator? roundGenerator,
     Uuid? uuid,
     AdsService? adsService,
+    InAppReviewService? inAppReview,
     DateTime Function()? now,
   }) : _words = wordRepository,
        _settingsRepo = settingsRepository,
        _generator = roundGenerator ?? RoundGenerator(),
        _uuid = uuid ?? const Uuid(),
        _ads = adsService ?? FakeAdsService(),
+       _inAppReview = inAppReview ?? const NoopInAppReviewService(),
        _now = now ?? DateTime.now,
        super(const GameSession());
 
@@ -54,6 +60,7 @@ class GameController extends StateNotifier<GameSession> {
   final RoundGenerator _generator;
   final Uuid _uuid;
   final AdsService _ads;
+  final InAppReviewService _inAppReview;
   final DateTime Function() _now;
   DateTime? _lastInterstitialAt;
   bool _startingNextRound = false;
@@ -352,7 +359,8 @@ class GameController extends StateNotifier<GameSession> {
   }
 
   void showRoundReady() {
-    final completed = state.phase == GamePhase.roundReady
+    final alreadyReady = state.phase == GamePhase.roundReady;
+    final completed = alreadyReady
         ? state.roundsCompleted
         : state.roundsCompleted + 1;
     state = state.copyWith(
@@ -360,6 +368,9 @@ class GameController extends StateNotifier<GameSession> {
       isCardRevealed: false,
       roundsCompleted: completed,
     );
+    if (!alreadyReady) {
+      unawaited(_inAppReview.onRoundCompleted());
+    }
   }
 
   /// Starts another round from the between-rounds screen.
